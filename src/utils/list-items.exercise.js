@@ -1,5 +1,6 @@
 import {queryCache, useMutation, useQuery} from 'react-query'
 import {client} from './api-client.exercise'
+import {setQueryDataForBook} from './books'
 
 export const useListItems = (user) => {
   const {data: listItems} = useQuery({
@@ -11,6 +12,12 @@ export const useListItems = (user) => {
           token: user.token,
         })
         .then(data => data.listItems),
+    config: {
+      onSuccess(listItems) {
+        for (const item of listItems)
+          setQueryDataForBook(item.book);
+      }
+    }
   })
   return listItems ?? []
 }
@@ -20,7 +27,13 @@ export const useListItem = (user, bookId) => {
   return listItems.find(li => li.bookId === bookId) ?? null
 }
 
-export const useUpdateListItem = (user) => useMutation(
+const defaultMutationConfig = {
+  onSettled: () => {
+    queryCache.invalidateQueries('list-items')
+  },
+}
+
+export const useUpdateListItem = (user, config = {}) => useMutation(
   (updates) => client(`list-items/${updates.id}`,
     {
       method: 'PUT',
@@ -28,26 +41,24 @@ export const useUpdateListItem = (user) => useMutation(
       token: user.token,
     }),
   {
-    onSettled: () => {
-      queryCache.invalidateQueries('list-items')
-    },
+    ...defaultMutationConfig,
+    ...config,
   },
 )
 
-export const useRemoveListItem = (user) => useMutation(
+export const useRemoveListItem = (user, config) => useMutation(
   (id) => client(`list-items/${id}`,
     {
       method: 'DELETE',
       token: user.token,
     }),
   {
-    onSettled: () => {
-      queryCache.invalidateQueries('list-items')
-    },
+    ...defaultMutationConfig,
+    ...config,
   },
 )
 
-export const useCreateListItem = (user) => useMutation(
+export const useCreateListItem = (user, config) => useMutation(
   (bookId) => client(`list-items`,
     {
       data: {
@@ -56,8 +67,7 @@ export const useCreateListItem = (user) => useMutation(
       token: user.token,
     }),
   {
-    onSettled: () => {
-      queryCache.invalidateQueries('list-items')
-    },
+    ...defaultMutationConfig,
+    ...config,
   },
 )

@@ -9,18 +9,16 @@ import {useParams} from 'react-router-dom'
 import {formatDate} from 'utils/misc'
 import * as mq from 'styles/media-queries'
 import * as colors from 'styles/colors'
-import {Textarea} from 'components/lib'
+import {ErrorMessage, Spinner, Textarea} from 'components/lib'
 import {Rating} from 'components/rating'
 import {StatusButtons} from 'components/status-buttons'
 import {useBook} from '../utils/books'
-import {useListItems, useUpdateListItem} from '../utils/list-items'
+import {useListItem, useUpdateListItem} from '../utils/list-items'
 
 function BookScreen({user}) {
   const {bookId} = useParams()
-  const book = useBook(bookId, user);
-
-  const {data: listItems} = useListItems(user);
-  const listItem = listItems?.find(i => i.bookId === book.id)
+  const book = useBook(bookId, user)
+  const listItem = useListItem(user, book.id)
 
   const {title, author, coverImageUrl, publisher, synopsis} = book
 
@@ -104,7 +102,7 @@ function ListItemTimeframe({listItem}) {
 }
 
 function NotesTextarea({listItem, user}) {
-  const [mutate] = useUpdateListItem(user);
+  const [mutate, {error, isError, isLoading}] = useUpdateListItem(user)
   const debouncedMutate = React.useMemo(
     () => debounceFn(mutate, {wait: 300}),
     [mutate],
@@ -129,6 +127,14 @@ function NotesTextarea({listItem, user}) {
         >
           Notes
         </label>
+        {isError && (
+          <ErrorMessage
+            error={error}
+            variant="inline"
+            css={{marginLeft: 6, fontSize: '0.7em'}}
+          />
+        )}
+        {isLoading && <Spinner />}
       </div>
       <Textarea
         id="notes"
