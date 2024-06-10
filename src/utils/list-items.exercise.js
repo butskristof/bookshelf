@@ -15,9 +15,9 @@ export const useListItems = (user) => {
     config: {
       onSuccess(listItems) {
         for (const item of listItems)
-          setQueryDataForBook(item.book);
-      }
-    }
+          setQueryDataForBook(item.book)
+      },
+    },
   })
   return listItems ?? []
 }
@@ -31,6 +31,9 @@ const defaultMutationConfig = {
   onSettled: () => {
     queryCache.invalidateQueries('list-items')
   },
+  onError(err, variables, recover) {
+    if (typeof recover === 'function') recover()
+  },
 }
 
 export const useUpdateListItem = (user, config = {}) => useMutation(
@@ -41,6 +44,13 @@ export const useUpdateListItem = (user, config = {}) => useMutation(
       token: user.token,
     }),
   {
+    onMutate(newItem) {
+      const previousItems = queryCache.getQueryData('list-items');
+      queryCache.setQueryData('list-items',
+        old => old.map(i => i.id === newItem.id ? {...i, ...newItem} : i),
+      );
+      return () => queryCache.setQueryData('list-items', previousItems);
+    },
     ...defaultMutationConfig,
     ...config,
   },
@@ -53,6 +63,13 @@ export const useRemoveListItem = (user, config) => useMutation(
       token: user.token,
     }),
   {
+    onMutate(removedItem) {
+      const previousItems = queryCache.getQueryData('list-items');
+      queryCache.setQueryData('list-items',
+        old => old.filter(i => i.id !== removedItem.id),
+      );
+      return () => queryCache.setQueryData('list-items', previousItems);
+    },
     ...defaultMutationConfig,
     ...config,
   },
@@ -67,6 +84,13 @@ export const useCreateListItem = (user, config) => useMutation(
       token: user.token,
     }),
   {
+    // onMutate(newItem) {
+    //   const previousItems = queryCache.getQueryData('list-items');
+    //   queryCache.setQueryData('list-items',
+    //     old => [...old, newItem],
+    //   );
+    //   return () => queryCache.setQueryData('list-items', previousItems);
+    // },
     ...defaultMutationConfig,
     ...config,
   },
